@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 430" role="img" aria-labelledby="title desc">
+<title id="title">달토끼 점프를 만든 세 친구</title><desc id="desc">세 친구가 함께 만든 게임의 상금 봉투 앞에서 각자의 기여를 이야기한다.</desc>
+<defs><pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M30 0H0V30" fill="none" stroke="#acc1a9" stroke-opacity=".4"/></pattern></defs>
+<rect width="580" height="430" rx="28" fill="#d6e4cf"/><rect width="580" height="430" rx="28" fill="url(#grid)"/>
+<path d="M60 90l8-17 8 17 18 8-18 8-8 18-8-18-18-8zM489 281l5-13 5 13 13 5-13 5-5 13-5-13-13-5z" fill="#f7f1b3" stroke="#305744" stroke-width="2"/>
+<g transform="rotate(-7 290 192)"><rect x="120" y="76" width="342" height="211" rx="12" fill="#b7c8b1"/><rect x="111" y="67" width="342" height="211" rx="12" fill="#fffdf4" stroke="#274c3b" stroke-width="2"/>
+<path d="M112 81l170 119L452 80M112 267l119-103M452 267l-120-103" fill="none" stroke="#274c3b" stroke-width="2"/>
+<rect x="207" y="102" width="169" height="125" rx="7" fill="#f3d568" stroke="#274c3b" stroke-width="2"/>
+<text x="292" y="131" text-anchor="middle" fill="#274c3b" font-family="sans-serif" font-size="14" font-weight="700">학교 축제 · 게임 상금</text><text x="292" y="177" text-anchor="middle" fill="#274c3b" font-family="sans-serif" font-size="33" font-weight="800">100,000</text><text x="292" y="204" text-anchor="middle" fill="#274c3b" font-family="sans-serif" font-size="14">세 친구의 첫 번째 고민</text></g>
+<g stroke="#274c3b" stroke-width="2.5" stroke-linejoin="round">
+<path d="M73 412v-57c0-53 108-53 108 0v57" fill="#849dd6"/><circle cx="127" cy="297" r="39" fill="#efd2b4"/><path d="M90 287q-5-55 38-44 46-6 39 42l-25-23-18 15-19-9z" fill="#303d36"/><path d="M113 300v5m27-5v5m-20 14q8 6 14 0" fill="none" stroke-linecap="round"/>
+<path d="M238 430v-59c0-54 109-54 109 0v59" fill="#f2b195"/><circle cx="292" cy="313" r="40" fill="#eed0b0"/><path d="M251 309q-6-53 40-48 47-4 44 50l-25-31-38 18z" fill="#584936"/><path d="M276 315v5m28-5v5m-21 13q8 6 14 0" fill="none" stroke-linecap="round"/><path d="M263 283l-9-16m11 11l-11-1" stroke="#9f6289" stroke-width="5" stroke-linecap="round"/>
+<path d="M405 413v-55c0-54 109-54 109 0v55" fill="#a7b588"/><circle cx="460" cy="299" r="39" fill="#dfb792"/><path d="M421 288q-4-47 39-45 41-4 39 44l-34-18z" fill="#303d36"/><path d="M446 303v5m27-5v5m-21 14q8 6 14 0" fill="none" stroke-linecap="round"/>
+</g>
+<g fill="#fffdf4" stroke="#274c3b" stroke-width="1.5"><rect x="29" y="215" width="125" height="33" rx="16"/><rect x="376" y="187" width="154" height="33" rx="16"/></g><g fill="#274c3b" font-family="sans-serif" font-size="13" font-weight="700"><text x="92" y="236" text-anchor="middle">내가 코드를 짰어!</text><text x="453" y="208" text-anchor="middle">테스트도 중요하잖아?</text></g>
+</svg>
