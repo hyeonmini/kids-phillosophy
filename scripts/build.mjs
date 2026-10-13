@@ -53,6 +53,21 @@ function rewriteDocumentLinks(source) {
     (_match, quote, path, suffix) => `${quote}${path}.html${suffix}${quote}`);
 }
 
+export function withHtmlDocumentMeta(html) {
+  if (/<meta\b[^>]*\bname\s*=\s*["']question-club-docs-format["'][^>]*>/i.test(html)) {
+    return html;
+  }
+  const marker = '<meta name="question-club-docs-format" content="html">';
+  if (/<\/head\s*>/i.test(html)) {
+    return html.replace(/<\/head\s*>/i, `  ${marker}\n  </head>`);
+  }
+  const head = `<head>\n  ${marker}\n</head>`;
+  if (/<html\b[^>]*>/i.test(html)) {
+    return html.replace(/<html\b[^>]*>/i, (tag) => `${tag}\n${head}`);
+  }
+  return `${head}\n${html}`;
+}
+
 export async function buildProject({ projectRoot = projectDir } = {}) {
   const sourceDir = resolve(projectRoot, 'public');
   const outputDir = resolve(projectRoot, 'dist');
@@ -94,7 +109,8 @@ export async function buildProject({ projectRoot = projectDir } = {}) {
       if (error.code === 'ENOENT') continue;
       throw error;
     }
-    await writeFile(filePath, rewriteDocumentLinks(source), 'utf8');
+    const rewritten = rewriteDocumentLinks(source);
+    await writeFile(filePath, filename === 'index.html' ? withHtmlDocumentMeta(rewritten) : rewritten, 'utf8');
   }
   await writeFile(resolve(outputDir, '.nojekyll'), '');
   return { outputDir, documentCount };

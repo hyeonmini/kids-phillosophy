@@ -10,6 +10,13 @@ const unsavedNoteIds = new Set();
 let activity = null;
 let toastTimer;
 const escape = (value = '') => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+const prizeImage = new URL('./assets/prize.svg', import.meta.url).href;
+
+function docUrl(filename) {
+  const format = document.querySelector('meta[name="question-club-docs-format"]')?.content;
+  const documentName = format === 'html' ? filename.replace(/\.md$/, '.html') : filename;
+  return new URL(`./docs/${documentName}`, document.baseURI).href;
+}
 
 function icon(name, size = 24) {
   const paths = {
@@ -52,14 +59,14 @@ function home() {
         <div class="hero-buttons"><button class="button primary" data-action="start">오늘의 사건 속으로 ${icon('arrow', 20)}</button><a class="text-link" href="#roadmap">성장 지도 둘러보기 <span aria-hidden="true">↘</span></a></div>
         <div class="hero-caption"><span class="mini-avatars">${[0, 1, 2].map(i => avatar(i, true)).join('')}</span><span>서로 다른 생각이 만나면, 이야기가 시작돼.</span></div>
       </div>
-      <div class="hero-art"><div class="art-topline"><span class="pill dark">오늘의 사건 01</span><span class="art-scribble">우리 셋이 만든 게임인데…</span></div><img src="./assets/prize.svg" alt="게임 상금 봉투 앞에서 각자의 기여를 말하는 세 친구" width="580" height="430" fetchpriority="high"><div class="art-caption"><span>공정함과 책임</span><strong>10만 원, 어떻게 나눌까?</strong><span class="art-arrow" aria-hidden="true">↗</span></div></div>
+      <div class="hero-art"><div class="art-topline"><span class="pill dark">오늘의 사건 01</span><span class="art-scribble">우리 셋이 만든 게임인데…</span></div><img src="${escape(prizeImage)}" alt="게임 상금 봉투 앞에서 각자의 기여를 말하는 세 친구" width="580" height="430" fetchpriority="high"><div class="art-caption"><span>공정함과 책임</span><strong>10만 원, 어떻게 나눌까?</strong><span class="art-arrow" aria-hidden="true">↗</span></div></div>
     </section>
     <div class="intro-strip"><div class="wrap"><span>${icon('spark', 19)} 선택해 보고</span><i aria-hidden="true">·</i><span>${icon('people', 21)} 다른 이유를 만나고</span><i aria-hidden="true">·</i><span>${icon('book', 20)} 내 생각을 남겨요</span></div></div>
     <section id="roadmap" class="section wrap" aria-labelledby="roadmap-title"><div class="section-heading"><div><p class="eyebrow">생각이 자라는 여덟 걸음</p><h2 id="roadmap-title">나에게서 시작해, 세상으로.</h2><p>순서대로 걸어도, 지금 궁금한 질문부터 시작해도 좋아.</p></div><span class="section-aside">초등학생부터 중학생까지<br>같은 질문을, 더 깊이.</span></div>
       <div class="roadmap-grid">${topics.map((topic, i) => `<button class="topic-card ${topic.color}${topic.live ? ' live' : ''}" data-action="topic" data-index="${i}"><div class="topic-top"><span class="topic-number">${String(i + 1).padStart(2, '0')}</span>${topic.live ? '<span class="live-label">지금 체험</span>' : ''}</div><span class="topic-icon">${icon(topic.icon, 29)}</span><h3>${topic.title}</h3><p>${topic.question}</p><span class="topic-bottom">${topic.live ? '첫 번째 사건을 만나봐' : '주제와 질문 살펴보기'} ${icon('arrow', 17)}</span></button>`).join('')}</div>
     </section>
     <section id="episodes" class="section episode-section"><div class="wrap"><div class="section-heading"><div><p class="eyebrow">오늘, 함께 풀어 볼 질문</p><h2>이야기 속으로 들어가 볼까?</h2><p>다른 이야기를 듣고, 네 이유를 다시 살펴봐.</p></div><span class="pill light">시즌 01</span></div>
-      <div class="episode-feature"><div class="feature-illustration"><span class="float-chip chip-one">₩</span><span class="float-chip chip-two">?</span><span class="feature-amount">100,000<span>원</span></span><div class="feature-people">${[0, 1, 2].map(i => avatar(i)).join('')}</div><span class="feature-label">세 명의 친구 · 열 개의 칩</span></div><div class="feature-copy"><div class="episode-meta"><span class="pill light">직접 선택하는 이야기</span><span>초등 4학년부터 · 내 속도로</span></div><h3>우리 게임이 상금<br>10만 원을 탔다.<br><span>누구 돈일까?</span></h3><p>코드를 만든 지우, 그림을 그린 서윤,<br>테스트하고 알린 민호. 셋의 이야기를 듣고<br>너만의 기준으로 상금을 나눠 봐.</p><button class="button primary" data-action="start">상금 나누러 가기 ${icon('arrow', 20)}</button><a class="subtle-link" href="./docs/episode-01.md" target="_blank" rel="noopener">영상 대본 읽기 ↗</a></div></div>
+      <div class="episode-feature"><div class="feature-illustration"><span class="float-chip chip-one">₩</span><span class="float-chip chip-two">?</span><span class="feature-amount">100,000<span>원</span></span><div class="feature-people">${[0, 1, 2].map(i => avatar(i)).join('')}</div><span class="feature-label">세 명의 친구 · 열 개의 칩</span></div><div class="feature-copy"><div class="episode-meta"><span class="pill light">직접 선택하는 이야기</span><span>초등 4학년부터 · 내 속도로</span></div><h3>우리 게임이 상금<br>10만 원을 탔다.<br><span>누구 돈일까?</span></h3><p>코드를 만든 지우, 그림을 그린 서윤,<br>테스트하고 알린 민호. 셋의 이야기를 듣고<br>너만의 기준으로 상금을 나눠 봐.</p><button class="button primary" data-action="start">상금 나누러 가기 ${icon('arrow', 20)}</button><a class="subtle-link" href="${escape(docUrl('episode-01.md'))}" target="_blank" rel="noopener">영상 대본 읽기 ↗</a></div></div>
       <div class="upcoming-row"><p><span class="pill outline">다음 이야기 · 기획 중</span> 어떤 질문을 더 만나게 될까?</p><button data-action="topic" data-index="0">감정을 삭제할 수 있다면? ${icon('arrow', 18)}</button><button data-action="topic" data-index="2">단짝이 비밀번호를 달라고 한다 ${icon('arrow', 18)}</button></div>
     </div></section>
     <section class="section wrap approach-section"><div><p class="eyebrow">오래된 지혜, 오늘의 질문</p><h2>다른 곳에서 온 생각이<br>한자리에 모였어.</h2><p>동서양 철학과 여러 종교의 관점을 만나 봐.<br>각각의 이야기에서 새로운 질문을 발견할 수 있어.</p><a href="#library" class="text-link">생각 도서관 만나기 ${icon('arrow', 18)}</a></div><div class="perspective-mini-grid">${perspectives.map((p, i) => `<button class="perspective-mini ${p.color}" data-action="source" data-index="${i}"><span>${icon(p.icon, 24)}</span><small>${p.tradition}</small><strong>${p.name}</strong><p>${p.title}</p>${icon('arrow', 19)}</button>`).join('')}</div></section>
@@ -103,7 +110,7 @@ function renderEpisode(preserveFocus = false) {
   main.className = 'episode-main';
   let body; let hint = ''; let ready = true;
   if (step === 0) {
-    body = `<p class="eyebrow">01 · 세 친구의 첫 번째 고민</p><h1 id="scene-title" tabindex="-1">우리 게임이 상금 10만 원을 탔다.<br>누구 돈일까?</h1><p class="scene-intro">학교 축제에서 ‘달토끼 점프’가 상을 받았어.<br>봉투를 열어 보니 10만 원! 그런데 셋의 생각이 달랐어.<br>셋은 상금을 어떻게 나눌지 미리 약속하지 않았어.</p><div class="story-visual"><img src="./assets/prize.svg" alt="게임 상금을 받은 지우, 서윤, 민호" width="580" height="430"><span class="story-label">이야기 미리보기</span></div><div class="dialogue-grid">${characters.map((c, i) => `<article>${avatar(i, true)}<strong>${c.name} <small>${c.role}</small></strong><p>“${c.initial}”</p></article>`).join('')}</div><div class="gentle-callout">네가 이 팀의 네 번째 친구라면, 어떤 기준으로 나눌까?</div>`;
+    body = `<p class="eyebrow">01 · 세 친구의 첫 번째 고민</p><h1 id="scene-title" tabindex="-1">우리 게임이 상금 10만 원을 탔다.<br>누구 돈일까?</h1><p class="scene-intro">학교 축제에서 ‘달토끼 점프’가 상을 받았어.<br>봉투를 열어 보니 10만 원! 그런데 셋의 생각이 달랐어.<br>셋은 상금을 어떻게 나눌지 미리 약속하지 않았어.</p><div class="story-visual"><img src="${escape(prizeImage)}" alt="게임 상금을 받은 지우, 서윤, 민호" width="580" height="430"><span class="story-label">이야기 미리보기</span></div><div class="dialogue-grid">${characters.map((c, i) => `<article>${avatar(i, true)}<strong>${c.name} <small>${c.role}</small></strong><p>“${c.initial}”</p></article>`).join('')}</div><div class="gentle-callout">네가 이 팀의 네 번째 친구라면, 어떤 기준으로 나눌까?</div>`;
     hint = '정해진 정답은 없어. 너의 이유가 궁금해.';
   } else if (step === 1 || step === 4) {
     const isFinal = step === 4;
@@ -142,7 +149,7 @@ function sourceCard(p, i) {
 
 function library() {
   main.className = 'library-main wrap';
-  main.innerHTML = `<section class="page-heading"><p class="eyebrow">생각 도서관</p><h1>오늘의 질문에,<br>오래된 지혜를 더해 봐.</h1><p>첫 번째 사건에서 만나는 세 가지 관점이야.<br>각 생각의 출처와, 오늘의 이야기로 연결한 방법을 살펴봐.</p></section><div class="library-grid">${perspectives.map(sourceCard).join('')}</div><section class="reading-room"><div><p class="eyebrow">함께 만드는 어른들에게</p><h2>이야기 뒤의 자료도 열어 두었어요.</h2><p>같은 질문을 연령에 따라 깊게 다루고, 전통마다 다른 맥락을 존중합니다.</p></div><div><a href="./docs/episode-01.md" target="_blank" rel="noopener">첫 에피소드 영상 대본 ${icon('arrow', 19)}</a><a href="./docs/editorial-guide.md" target="_blank" rel="noopener">출처와 편집 원칙 ${icon('arrow', 19)}</a><a href="./docs/content-roadmap.md" target="_blank" rel="noopener">전체 콘텐츠 로드맵 ${icon('arrow', 19)}</a></div></section>`;
+  main.innerHTML = `<section class="page-heading"><p class="eyebrow">생각 도서관</p><h1>오늘의 질문에,<br>오래된 지혜를 더해 봐.</h1><p>첫 번째 사건에서 만나는 세 가지 관점이야.<br>각 생각의 출처와, 오늘의 이야기로 연결한 방법을 살펴봐.</p></section><div class="library-grid">${perspectives.map(sourceCard).join('')}</div><section class="reading-room"><div><p class="eyebrow">함께 만드는 어른들에게</p><h2>이야기 뒤의 자료도 열어 두었어요.</h2><p>같은 질문을 연령에 따라 깊게 다루고, 전통마다 다른 맥락을 존중합니다.</p></div><div><a href="${escape(docUrl('episode-01.md'))}" target="_blank" rel="noopener">첫 에피소드 영상 대본 ${icon('arrow', 19)}</a><a href="${escape(docUrl('editorial-guide.md'))}" target="_blank" rel="noopener">출처와 편집 원칙 ${icon('arrow', 19)}</a><a href="${escape(docUrl('content-roadmap.md'))}" target="_blank" rel="noopener">전체 콘텐츠 로드맵 ${icon('arrow', 19)}</a></div></section>`;
 }
 
 function renderNotes() {
@@ -158,7 +165,7 @@ function showTopic(index) {
 
 function showSource(index) {
   const p = perspectives[index];
-  dialog.innerHTML = `<div class="dialog-header"><p class="eyebrow">${p.tradition}</p><button class="icon-button" aria-label="닫기" data-action="close">${icon('close')}</button></div><h2 id="dialog-title">${p.name}</h2><p class="dialog-question">${p.title}</p><p>${p.text}</p><div class="source-detail"><strong>원전 위치</strong><p>${p.source}</p><strong>오늘의 이야기로 연결한 방법</strong><p>${p.note}</p></div><p class="source-context">한 전통 안에도 여러 해석이 있어. 이 카드는 그중 한 개념에서 출발해, 우리가 생각해 볼 질문을 만든 것이야.</p><a class="text-link" href="./docs/editorial-guide.md" target="_blank" rel="noopener">자세한 편집 자료 읽기 ↗</a>`;
+  dialog.innerHTML = `<div class="dialog-header"><p class="eyebrow">${p.tradition}</p><button class="icon-button" aria-label="닫기" data-action="close">${icon('close')}</button></div><h2 id="dialog-title">${p.name}</h2><p class="dialog-question">${p.title}</p><p>${p.text}</p><div class="source-detail"><strong>원전 위치</strong><p>${p.source}</p><strong>오늘의 이야기로 연결한 방법</strong><p>${p.note}</p></div><p class="source-context">한 전통 안에도 여러 해석이 있어. 이 카드는 그중 한 개념에서 출발해, 우리가 생각해 볼 질문을 만든 것이야.</p><a class="text-link" href="${escape(docUrl('editorial-guide.md'))}" target="_blank" rel="noopener">자세한 편집 자료 읽기 ↗</a>`;
   dialog.showModal();
 }
 

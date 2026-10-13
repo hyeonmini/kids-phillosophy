@@ -37,7 +37,7 @@ python3 tests/browser_smoke.py
 node scripts/server.mjs --dist
 ```
 
-웹 화면은 `/`에서, 대본·편집 가이드·로드맵은 `/docs/<파일명>.md`에서 엽니다. 첫 에피소드 대본 경로는 `/docs/episode-01.md`입니다. 개발 서버는 저장소의 `docs/`, 빌드 서버는 `dist/docs/`만 문서 경로로 제공합니다. 서버를 코드에서 가져올 때는 `createStaticServer({ rootDir, docsDir })`로 문서 디렉터리를 명시해야 하며, `docsDir`을 지정하지 않으면 `/docs/` 요청은 404를 반환합니다.
+웹 화면은 `/`에서 엽니다. 개발 서버에서는 `/docs/<파일명>.md`, 공개 빌드와 저장소 루트 배포에서는 `/docs/<파일명>.html`로 대본·편집 가이드·로드맵을 읽습니다. 개발 서버는 저장소의 `docs/`, 빌드 서버는 `dist/docs/`만 문서 경로로 제공합니다. 서버를 코드에서 가져올 때는 `createStaticServer({ rootDir, docsDir })`로 문서 디렉터리를 명시해야 하며, `docsDir`을 지정하지 않으면 `/docs/` 요청은 404를 반환합니다.
 
 ## 시제품 범위
 
@@ -54,8 +54,16 @@ node scripts/server.mjs --dist
 
 ## 공개 호스팅: GitHub Pages
 
-정적 빌드 결과 `dist/`를 배포합니다. JavaScript와 그림·스타일·문서 링크는 상대 경로를 사용하므로 GitHub Pages의 프로젝트 경로에서도 열립니다. 공개 빌드에는 영상 대본·편집 가이드·로드맵이 포함되며, 브라우저에서 읽을 수 있는 HTML 문서와 원본 Markdown을 제공합니다.
+GitHub Pages의 `main` 브랜치 `/(root)` 배포와 Actions의 `dist/` 배포를 모두 지원합니다. JavaScript 모듈을 기준으로 그림을 찾고, 문서는 페이지의 배포 형식 표시에 따라 연결하므로 프로젝트 하위 경로에서도 열립니다. 두 배포 방식 모두 영상 대본·편집 가이드·로드맵의 HTML 문서와 원본 Markdown을 제공합니다.
 
-`.github/workflows/pages.yml`은 `main`에 푸시하거나 수동 실행하면 테스트와 빌드를 거쳐 Pages에 배포합니다. 저장소의 **Settings → Pages → Build and deployment → Source**는 **GitHub Actions**여야 합니다. 최초 배포 완료 후 GitHub가 반환하는 Pages 주소를 확인하고 공개 체험을 검증합니다.
+소스나 문서를 바꾼 뒤 저장소 루트 배포 파일을 준비합니다.
+
+```bash
+npm run prepare:pages
+```
+
+이 명령은 빌드 후 루트 `index.html`, `.nojekyll`, `docs/*.html`을 생성합니다. 이 파일들은 `main`에 함께 커밋하는 배포 파일입니다. 루트 페이지는 `public/`의 웹 코드를 사용하며 원본 `public/` 파일과 `docs/*.md`는 보존합니다. `.nojekyll`은 루트의 정적 앱이 그대로 게시되도록 합니다. 현재 Pages의 **Deploy from a branch → main → /(root)** 설정으로 앱을 게시할 수 있습니다.
+
+`.github/workflows/pages.yml`은 `main`에 푸시하거나 수동 실행하면 테스트와 빌드를 거쳐 `dist/`를 Pages에 배포합니다. 별도로 GitHub Actions 소스를 사용하는 경우에도 같은 앱과 HTML 문서를 제공합니다. 배포 완료 후 GitHub가 반환하는 Pages 주소에서 공개 체험을 검증합니다.
 
 배포에 필요한 GitHub API 접근은 `api.github.com`, 공개 사이트 확인에는 `hyeonmini.github.io` 접근이 필요합니다. 클라우드 환경 설정의 게시와 GitHub Pages의 웹사이트 배포는 별개의 작업입니다.

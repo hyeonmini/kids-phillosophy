@@ -1,6 +1,7 @@
 """Check a GitHub Pages project path locally or against the published site.
 
-Build first, then run `python tests/pages_smoke.py` for /kids-phillosophy/.
+Build first, then run `python tests/pages_smoke.py` for dist at /kids-phillosophy/.
+For a prepared main/root checkout, use `python tests/pages_smoke.py --serve-root project`.
 For the published site, use:
   python tests/pages_smoke.py --base-url https://hyeonmini.github.io/kids-phillosophy/
 Only the temporary server created by this test is stopped on exit.
@@ -25,7 +26,9 @@ WRAPPER = r"""
 import { createServer } from 'node:http';
 import { createStaticServer } from './scripts/server.mjs';
 const prefix = '/kids-phillosophy';
-const files = createStaticServer({ rootDir: 'dist', docsDir: 'dist/docs' });
+const mode = process.argv[1] ?? 'dist';
+const rootDir = mode === 'project' ? '.' : 'dist';
+const files = createStaticServer({ rootDir, docsDir: `${rootDir}/docs` });
 const serve = files.listeners('request')[0];
 const server = createServer((req, res) => {
   const pathname = (req.url ?? '/').split('?')[0];
@@ -49,10 +52,12 @@ process.on('SIGTERM', () => server.close(() => process.exit(0)));
 """
 
 
-def start_project_server(project):
-    assert (project / "dist/index.html").is_file(), "Run npm run build before this test."
+def start_project_server(project, serve_root):
+    root = project if serve_root == "project" else project / "dist"
+    assert (root / "index.html").is_file(), "Prepare the requested root before this test."
+    assert (root / ".nojekyll").is_file(), "The Pages root needs .nojekyll."
     server = subprocess.Popen(
-        ["node", "--input-type=module", "-e", WRAPPER],
+        ["node", "--input-type=module", "-e", WRAPPER, serve_root],
         cwd=project,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -88,6 +93,8 @@ def stop_project_server(server):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-url", help="Published project URL; skips the local wrapper.")
+    parser.add_argument("--serve-root", choices=["dist", "project"], default="dist",
+                        help="Local Pages artifact root; ignored for --base-url.")
     parser.add_argument("--chromium", default="/usr/bin/chromium")
     parser.add_argument("--output", default="test-results/pages")
     args = parser.parse_args()
@@ -102,11 +109,12 @@ def main():
         if args.base_url:
             base_url = args.base_url.rstrip("/") + "/"
         else:
-            server, base_url = start_project_server(project)
+            server, base_url = start_project_server(project, args.serve_root)
         origin = urlparse(base_url)
         assert origin.scheme in {"http", "https"} and origin.netloc
         assert origin.path == "/kids-phillosophy/", "Use the /kids-phillosophy/ project URL."
         report["base_url"] = base_url
+        report["serve_root"] = "public" if args.base_url else args.serve_root
 
         with sync_playwright() as playwright:
             launch_options = {"executable_path": args.chromium, "headless": True,

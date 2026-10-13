@@ -10,6 +10,7 @@
     "dev": "node scripts/server.mjs",
     "start": "node scripts/server.mjs",
     "build": "node scripts/build.mjs",
+    "prepare:pages": "node scripts/prepare-pages-branch.mjs",
     "test": "node --test tests/*.test.mjs"
   }
 }

@@ -12,7 +12,7 @@ const deploymentBase = new URL('https://example.github.io/kids-phillosophy/');
 function localReferences(source) {
   return [...source.matchAll(/(?:href|src)=["']([^"']+)["']/g)]
     .map((match) => match[1])
-    .filter((path) => !path.startsWith('#') && !/^[a-z][a-z\d+.-]*:/i.test(path));
+    .filter((path) => !path.includes('${') && !path.startsWith('#') && !/^[a-z][a-z\d+.-]*:/i.test(path));
 }
 
 test('project build produces complete documents and paths under the Pages repository base', async (t) => {
@@ -30,7 +30,7 @@ test('project build produces complete documents and paths under the Pages reposi
     for (const filename of ['index.html', 'app.js']) {
       const source = await readFile(resolve(outputDir, filename), 'utf8');
       const references = localReferences(source);
-      assert.ok(references.length > 0, filename);
+      if (filename === 'index.html') assert.ok(references.length > 0, filename);
       for (const path of references) {
         assert.ok(path.startsWith('./'), `${filename}: ${path}`);
         const resolved = new URL(path, deploymentBase);
@@ -45,6 +45,13 @@ test('project build produces complete documents and paths under the Pages reposi
       assert.ok(match[1].startsWith('./'));
       await access(resolve(outputDir, match[1]));
     }
+    for (const match of moduleSource.matchAll(/new URL\(['"]([^'"]+)['"],\s*import\.meta\.url\)/g)) {
+      const resource = new URL(match[1], new URL('app.js', deploymentBase));
+      assert.ok(resource.pathname.startsWith(deploymentBase.pathname));
+      await access(resolve(outputDir, decodeURIComponent(resource.pathname.slice(deploymentBase.pathname.length))));
+    }
+    const index = await readFile(resolve(outputDir, 'index.html'), 'utf8');
+    assert.equal((index.match(/name="question-club-docs-format" content="html"/g) ?? []).length, 1);
   });
 
   await t.test('HTML readers preserve UTF-8 Markdown and expose relative reader navigation', async () => {
@@ -69,8 +76,8 @@ test('project build produces complete documents and paths under the Pages reposi
   await t.test('build leaves source links and source Markdown unchanged', async () => {
     for (const [filename, original] of Object.entries(originals)) {
       assert.equal(await readFile(resolve(projectRoot, 'public', filename), 'utf8'), original);
-      assert.match(original, /href="\.\/docs\/[^"']+\.md"/);
     }
+    assert.match(originals['index.html'], /href="\.\/docs\/[^"']+\.md"/);
     for (const [filename, original] of Object.entries(documentSources)) {
       assert.equal(await readFile(resolve(projectRoot, 'docs', filename), 'utf8'), original);
     }
