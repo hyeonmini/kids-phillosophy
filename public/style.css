@@ -152,6 +152,12 @@ h1,h2,h3,p { margin-top:0; }
 .story-visual { position:relative; width:min(430px,100%); margin:0 auto 28px; }
 .story-visual img { width:100%; border-radius:18px; border:1px solid #b9cbb3; }
 .story-label { position:absolute; top:13px; left:15px; background:#fffef1e8; padding:4px 9px; font-size:9px; border-radius:20px; }
+.pilot-video { width:min(720px,100%); margin:0 auto 15px; }
+.pilot-video video { display:block; width:100%; height:auto; aspect-ratio:16/9; border:1px solid #b9cbb3; border-radius:16px; background:#243e32; }
+.pilot-video video:focus-visible { outline:3px solid #a65f29; outline-offset:5px; }
+.pilot-video figcaption { margin-top:12px; color:var(--muted); font-size:11px; line-height:1.8; }
+.pilot-resources { display:flex; justify-content:center; flex-wrap:wrap; gap:12px 24px; margin-bottom:28px; }
+.pilot-resources .text-link { font-size:12px; }
 .dialogue-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:25px; }
 .dialogue-grid article { background:#f4f5ed; border:1px solid #e0e5d6; border-radius:14px; padding:17px; }
 .dialogue-grid article > .avatar { margin-bottom:8px; }

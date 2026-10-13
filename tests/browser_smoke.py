@@ -18,6 +18,12 @@ FIRST_REASON = "각자의 기여를 생각했어"
 FINAL_REASON = "함께 만든 팀이라는 점을 생각했어"
 
 
+def is_expected_media_abort(request):
+    return (request.resource_type == "media"
+            and request.failure == "net::ERR_ABORTED"
+            and urlparse(request.url).path.endswith("/pilot-01.mp4"))
+
+
 def assert_no_overflow(page, label, measurements):
     dimensions = page.evaluate("""() => ({
       inner_width: window.innerWidth,
@@ -43,11 +49,77 @@ def expect_step(page, label):
     expect(page.locator(".step-track .current small")).to_have_text(label)
 
 
+def check_pilot_video(page, playback=True):
+    video = page.locator("#pilot-video")
+    expect(video).to_be_visible()
+    expect(video).to_have_attribute("controls", "")
+    expect(video).to_have_attribute("playsinline", "")
+    expect(video).to_have_attribute("preload", "metadata")
+    assert video.get_attribute("autoplay") is None
+    assert video.get_attribute("autoload") is None
+    assert video.get_attribute("poster")
+    expect(video.locator("track")).to_have_attribute("srclang", "ko")
+    assert video.locator("track").get_attribute("default") is None
+    expect(page.locator("#pilot-description")).to_have_text(
+        "90초 모션 웹툰 파일럿 · 한국어 자막·효과음 · 내레이션은 제작 전")
+    expect(page.locator(".pilot-resources a")).to_have_count(2)
+    transcript_url = page.locator(".pilot-resources a").first.evaluate("link => link.href")
+    transcript = page.context.request.get(transcript_url)
+    assert transcript.status == 200
+    assert "90초" in transcript.text()
+    page.wait_for_function("""() => {
+      const video = document.querySelector('#pilot-video');
+      return video && Number.isFinite(video.duration) && video.readyState >= 1;
+    }""", timeout=30000)
+    metadata = video.evaluate("video => ({ duration: video.duration, width: video.videoWidth, height: video.videoHeight, paused: video.paused })")
+    assert 89 <= metadata["duration"] <= 91, metadata
+    assert metadata["width"] > 0 and metadata["height"] > 0, metadata
+    assert metadata["paused"], "The pilot must wait for the viewer to start it."
+    assert video.evaluate("video => !video.error"), "Video metadata failed."
+
+    captions_url = video.locator("track").evaluate("track => track.src")
+    captions = page.context.request.get(captions_url)
+    assert captions.status == 200
+    assert captions.text().lstrip().startswith("WEBVTT")
+
+    if playback:
+        page.evaluate("""async () => {
+          const video = document.querySelector('#pilot-video');
+          video.muted = true;
+          await video.play();
+        }""")
+        page.wait_for_function("""() => {
+          const video = document.querySelector('#pilot-video');
+          return video.currentTime > 0.2 && video.getVideoPlaybackQuality().totalVideoFrames > 0;
+        }""", timeout=15000)
+        page.evaluate("""() => {
+          const video = document.querySelector('#pilot-video');
+          video.pause();
+          video.currentTime = 30;
+        }""")
+        page.wait_for_function("""() => {
+          const video = document.querySelector('#pilot-video');
+          return !video.seeking && video.readyState >= 2 && Math.abs(video.currentTime - 30) < 0.5;
+        }""", timeout=15000)
+        page.evaluate("document.querySelector('#pilot-video').play()")
+        page.wait_for_function("document.querySelector('#pilot-video').currentTime > 30.2", timeout=15000)
+        metadata["decoded_frames"] = video.evaluate("video => video.getVideoPlaybackQuality().totalVideoFrames")
+        metadata["seeked_to"] = video.evaluate("video => video.currentTime")
+        page.evaluate("""() => {
+          const video = document.querySelector('#pilot-video');
+          video.pause();
+          video.currentTime = 0;
+          video.muted = false;
+        }""")
+        page.wait_for_function("!document.querySelector('#pilot-video').seeking", timeout=15000)
+    assert video.evaluate("video => !video.error"), "Video playback or seeking failed."
+    return metadata
+
+
 def run_story(page, screenshots=None, measurements=None, prefix="desktop"):
     page.locator(".empty-notes [data-action='start']").click()
     expect_step(page, "사건 만나기")
-    expect(page.locator(".story-label")).to_have_text("이야기 미리보기")
-    assert page.locator("video").count() == 0
+    pilot_metadata = check_pilot_video(page)
     if screenshots:
         screenshot(page, screenshots, f"{prefix}-episode-story.png")
     if measurements is not None:
@@ -121,6 +193,7 @@ def run_story(page, screenshots=None, measurements=None, prefix="desktop"):
         screenshot(page, screenshots, f"{prefix}-episode-reflection.png")
     if measurements is not None:
         assert_no_overflow(page, "episode-reflection", measurements)
+    return pilot_metadata
 
 
 def check_download(page, output_directory, action="download-note", filename="note-download.md"):
@@ -151,8 +224,10 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     errors = []
     failures = []
+    media_cancellations = []
     measurements = []
     results = []
+    pilot_metadata = {}
 
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(
@@ -172,8 +247,10 @@ def main():
                 page.on("pageerror", lambda error: errors.append(f"{label}: {error}"))
                 page.on("console", lambda message: errors.append(f"{label}: {message.text}")
                         if message.type == "error" else None)
-                page.on("requestfailed", lambda request: failures.append(
-                    f"{label}: {request.url}: {request.failure}"))
+                def request_failed(request):
+                    destination = media_cancellations if is_expected_media_abort(request) else failures
+                    destination.append(f"{label}: {request.url}: {request.failure}")
+                page.on("requestfailed", request_failed)
 
             desktop_context = new_context(viewport={"width": 1440, "height": 1000})
             page = desktop_context.new_page()
@@ -227,7 +304,7 @@ def main():
             screenshot(page, output, "desktop-empty-notes.png")
             results.append("empty note state")
 
-            run_story(page, output)
+            pilot_metadata["desktop"] = run_story(page, output)
             expect(page.locator("#status-message")).to_contain_text("저장했어")
             raw_notes = page.evaluate("JSON.parse(localStorage.getItem('question-club-notes-v1'))")
             assert len(raw_notes) == 1
@@ -248,7 +325,7 @@ def main():
             assert page.evaluate("JSON.parse(localStorage.getItem('question-club-notes-v1'))") == []
             page.reload(wait_until="networkidle")
             expect(page.locator(".empty-notes")).to_be_visible()
-            results.append("six-step story, save, reload restore, Markdown download, deletion")
+            results.append("90-second pilot metadata, decoded playback and seeking; six-step story, save, reload restore, Markdown download, deletion")
 
             mobile_context = new_context(viewport={"width": 390, "height": 844},
                                          is_mobile=True, device_scale_factor=1, has_touch=True)
@@ -274,7 +351,7 @@ def main():
             open_nav(mobile, "notes")
             expect(mobile.locator(".empty-notes")).to_be_visible()
             assert_no_overflow(mobile, "empty-notes", measurements)
-            run_story(mobile, output, measurements, "mobile")
+            pilot_metadata["mobile"] = run_story(mobile, output, measurements, "mobile")
             open_nav(mobile, "notes")
             expect(mobile.locator(".saved-note")).to_have_count(1)
             assert_no_overflow(mobile, "saved-notes", measurements)
@@ -289,7 +366,7 @@ def main():
             observe(blocked, "storage-denied")
             blocked.goto(f"{base_url}/#notes", wait_until="networkidle")
             expect(blocked.locator(".empty-notes")).to_be_visible()
-            run_story(blocked)
+            pilot_metadata["storage_denied"] = run_story(blocked)
             expect(blocked.locator("#status-message")).to_contain_text("브라우저에 저장할 수 없었어")
             open_nav(blocked, "notes")
             expect(blocked.locator(".saved-note")).to_have_count(1)
@@ -304,7 +381,9 @@ def main():
             assert not failures, failures
             results.append("zero browser console errors, uncaught errors and failed requests")
             report = {"passed": results, "mobile_widths": measurements,
-                      "console_errors": errors, "failed_requests": failures}
+                      "console_errors": errors, "failed_requests": failures,
+                      "media_cancellations": media_cancellations,
+                      "pilot_metadata": pilot_metadata}
             (output / "browser-report.json").write_text(
                 json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             print(json.dumps(report, ensure_ascii=False, indent=2))

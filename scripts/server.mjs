@@ -21,6 +21,8 @@ const mimeTypes = {
   '.ico': 'image/x-icon',
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
+  '.mp4': 'video/mp4',
+  '.vtt': 'text/vtt; charset=utf-8',
 };
 
 function isWithin(rootDir, target) {
@@ -38,6 +40,25 @@ function sendText(req, res, statusCode, message, headers = {}) {
     ...headers,
   });
   res.end(req.method === 'HEAD' ? undefined : message);
+}
+
+function byteRange(header, size) {
+  if (typeof header !== 'string') return null;
+  const match = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
+  if (!match || (!match[1] && !match[2])) return null;
+  if (size === 0) return false;
+
+  if (!match[1]) {
+    const suffix = Number(match[2]);
+    if (!Number.isSafeInteger(suffix) || suffix === 0) return false;
+    return { start: Math.max(0, size - suffix), end: size - 1 };
+  }
+
+  const start = Number(match[1]);
+  const end = match[2] ? Number(match[2]) : size - 1;
+  if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end)
+    || start >= size || start > end) return false;
+  return { start, end: Math.min(end, size - 1) };
 }
 
 export function createStaticServer({ rootDir = resolve(projectDir, 'public'), docsDir } = {}) {
@@ -100,9 +121,21 @@ export function createStaticServer({ rootDir = resolve(projectDir, 'public'), do
         return;
       }
 
-      res.writeHead(200, {
+      const range = req.method === 'GET' && !req.headers['if-range']
+        ? byteRange(req.headers.range, fileStat.size) : null;
+      if (range === false) {
+        sendText(req, res, 416, 'Requested range not satisfiable\n', {
+          'Content-Range': `bytes */${fileStat.size}`,
+          'Accept-Ranges': 'bytes',
+        });
+        return;
+      }
+
+      res.writeHead(range ? 206 : 200, {
         'Content-Type': mimeTypes[extname(filePath).toLowerCase()] ?? 'application/octet-stream',
-        'Content-Length': fileStat.size,
+        'Content-Length': range ? range.end - range.start + 1 : fileStat.size,
+        'Accept-Ranges': 'bytes',
+        ...(range ? { 'Content-Range': `bytes ${range.start}-${range.end}/${fileStat.size}` } : {}),
         'Cache-Control': 'no-cache',
         'X-Content-Type-Options': 'nosniff',
       });
@@ -111,7 +144,7 @@ export function createStaticServer({ rootDir = resolve(projectDir, 'public'), do
         return;
       }
 
-      const stream = createReadStream(canonicalFile);
+      const stream = createReadStream(canonicalFile, range || undefined);
       stream.on('error', () => res.destroy());
       res.on('close', () => stream.destroy());
       stream.pipe(res);

@@ -11,6 +11,9 @@ let activity = null;
 let toastTimer;
 const escape = (value = '') => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
 const prizeImage = new URL('./assets/prize.svg', import.meta.url).href;
+const pilotVideo = new URL('./assets/video/pilot-01.mp4', import.meta.url).href;
+const pilotPoster = new URL('./assets/video/pilot-01-poster.jpg', import.meta.url).href;
+const pilotCaptions = new URL('./assets/video/pilot-01.vtt', import.meta.url).href;
 
 function docUrl(filename) {
   const format = document.querySelector('meta[name="question-club-docs-format"]')?.content;
@@ -110,7 +113,7 @@ function renderEpisode(preserveFocus = false) {
   main.className = 'episode-main';
   let body; let hint = ''; let ready = true;
   if (step === 0) {
-    body = `<p class="eyebrow">01 · 세 친구의 첫 번째 고민</p><h1 id="scene-title" tabindex="-1">우리 게임이 상금 10만 원을 탔다.<br>누구 돈일까?</h1><p class="scene-intro">학교 축제에서 ‘달토끼 점프’가 상을 받았어.<br>봉투를 열어 보니 10만 원! 그런데 셋의 생각이 달랐어.<br>셋은 상금을 어떻게 나눌지 미리 약속하지 않았어.</p><div class="story-visual"><img src="${escape(prizeImage)}" alt="게임 상금을 받은 지우, 서윤, 민호" width="580" height="430"><span class="story-label">이야기 미리보기</span></div><div class="dialogue-grid">${characters.map((c, i) => `<article>${avatar(i, true)}<strong>${c.name} <small>${c.role}</small></strong><p>“${c.initial}”</p></article>`).join('')}</div><div class="gentle-callout">네가 이 팀의 네 번째 친구라면, 어떤 기준으로 나눌까?</div>`;
+    body = `<p class="eyebrow">01 · 세 친구의 첫 번째 고민</p><h1 id="scene-title" tabindex="-1">우리 게임이 상금 10만 원을 탔다.<br>누구 돈일까?</h1><p class="scene-intro">학교 축제에서 ‘달토끼 점프’가 상을 받았어.<br>봉투를 열어 보니 10만 원! 그런데 셋의 생각이 달랐어.<br>셋은 상금을 어떻게 나눌지 미리 약속하지 않았어.</p><figure class="pilot-video"><video id="pilot-video" controls playsinline preload="metadata" poster="${escape(pilotPoster)}" width="1280" height="720" aria-label="10만 원, 어떻게 나눌까? 90초 모션 웹툰 파일럿" aria-describedby="pilot-description"><source src="${escape(pilotVideo)}" type="video/mp4"><track kind="captions" src="${escape(pilotCaptions)}" srclang="ko" label="한국어 자막">영상을 재생할 수 없다면 아래 대본으로 읽어 줘.</video><figcaption id="pilot-description">90초 모션 웹툰 파일럿 · 한국어 자막·효과음 · 내레이션은 제작 전</figcaption></figure><div class="pilot-resources"><a class="text-link" href="${escape(docUrl('video-pilot-01.md'))}" target="_blank" rel="noopener">짧은 영상 대본 읽기 ${icon('book', 18)}</a><a class="text-link" href="${escape(pilotVideo)}" download="물음표클럽-90초-파일럿.mp4">영상 파일 내려받기 ${icon('download', 18)}</a></div><div class="dialogue-grid">${characters.map((c, i) => `<article>${avatar(i, true)}<strong>${c.name} <small>${c.role}</small></strong><p>“${c.initial}”</p></article>`).join('')}</div><div class="gentle-callout">네가 이 팀의 네 번째 친구라면, 어떤 기준으로 나눌까?</div>`;
     hint = '정해진 정답은 없어. 너의 이유가 궁금해.';
   } else if (step === 1 || step === 4) {
     const isFinal = step === 4;

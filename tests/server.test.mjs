@@ -14,9 +14,9 @@ async function listen(server) {
   return server.address().port;
 }
 
-function get(port, path, method = 'GET') {
+function get(port, path, method = 'GET', headers = {}) {
   return new Promise((resolve, reject) => {
-    const req = request({ hostname: '127.0.0.1', port, path, method }, (res) => {
+    const req = request({ hostname: '127.0.0.1', port, path, method, headers }, (res) => {
       const chunks = [];
       res.on('data', (chunk) => chunks.push(chunk));
       res.on('end', () => resolve({
@@ -54,6 +54,8 @@ test('static server serves the web and isolates optional documents', async (t) =
       'style.css': 'body { color: black; }',
       'data.json': '{"ready":true}',
       'icon.svg': '<svg xmlns="http://www.w3.org/2000/svg"/>',
+      'clip.mp4': '0123456789abcdefghij',
+      'captions.vtt': 'WEBVTT\n\n00:00.000 --> 00:02.000\n어떻게 나눌까?\n',
       'docs/shadow.md': '# This must not become the document route',
     };
     for (const [path, body] of Object.entries(files)) {
@@ -100,6 +102,38 @@ test('static server serves the web and isolates optional documents', async (t) =
       const missing = await get(port, '/missing', 'HEAD');
       assert.equal(missing.status, 404);
       assert.equal(missing.body, '');
+    });
+
+    await t.test('streams requested video bytes for playback seeking and serves Korean captions', async () => {
+      // The payload checks HTTP byte transport; browser QA uses the actual pilot MP4.
+      const complete = await get(port, '/clip.mp4');
+      assert.equal(complete.status, 200);
+      assert.equal(complete.headers['content-type'], 'video/mp4');
+      assert.equal(complete.headers['accept-ranges'], 'bytes');
+      for (const [range, expected, contentRange] of [
+        ['bytes=0-3', '0123', 'bytes 0-3/20'],
+        ['bytes=16-', 'ghij', 'bytes 16-19/20'],
+        ['bytes=-4', 'ghij', 'bytes 16-19/20'],
+        ['bytes=18-999', 'ij', 'bytes 18-19/20'],
+      ]) {
+        const response = await get(port, '/clip.mp4', 'GET', { Range: range });
+        assert.equal(response.status, 206, range);
+        assert.equal(response.body, expected, range);
+        assert.equal(response.headers['content-range'], contentRange, range);
+        assert.equal(Number(response.headers['content-length']), Buffer.byteLength(expected), range);
+      }
+      for (const range of ['bytes=20-', 'bytes=6-2', 'bytes=-0']) {
+        const response = await get(port, '/clip.mp4', 'GET', { Range: range });
+        assert.equal(response.status, 416, range);
+        assert.equal(response.headers['content-range'], 'bytes */20', range);
+      }
+      const head = await get(port, '/clip.mp4', 'HEAD', { Range: 'bytes=0-3' });
+      assert.equal(head.status, 200);
+      assert.equal(head.body, '');
+      assert.equal(Number(head.headers['content-length']), 20);
+      const captions = await get(port, '/captions.vtt');
+      assert.equal(captions.headers['content-type'], 'text/vtt; charset=utf-8');
+      assert.match(captions.body, /어떻게 나눌까/);
     });
 
     await t.test('rejects raw and encoded traversal in both serving roots', async () => {

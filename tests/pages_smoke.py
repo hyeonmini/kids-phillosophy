@@ -19,7 +19,7 @@ from urllib.parse import urlparse
 from playwright.sync_api import expect, sync_playwright
 
 sys.dont_write_bytecode = True
-from browser_smoke import REFLECTION, assert_no_overflow, open_nav, run_story, screenshot
+from browser_smoke import REFLECTION, assert_no_overflow, check_pilot_video, is_expected_media_abort, open_nav, run_story, screenshot
 
 
 WRAPPER = r"""
@@ -104,7 +104,8 @@ def main():
     server = None
     browser = None
     report = {"passed": [], "console_errors": [], "failed_requests": [],
-              "resource_errors": [], "outside_project_requests": [], "mobile_widths": []}
+              "resource_errors": [], "outside_project_requests": [], "mobile_widths": [],
+              "media_cancellations": []}
     try:
         if args.base_url:
             base_url = args.base_url.rstrip("/") + "/"
@@ -129,8 +130,10 @@ def main():
                 page.on("pageerror", lambda error: report["console_errors"].append(str(error)))
                 page.on("console", lambda message: report["console_errors"].append(message.text)
                         if message.type == "error" else None)
-                page.on("requestfailed", lambda request: report["failed_requests"].append(
-                    {"url": request.url, "error": request.failure}))
+                def request_failed(request):
+                    key = "media_cancellations" if is_expected_media_abort(request) else "failed_requests"
+                    report[key].append({"url": request.url, "error": request.failure})
+                page.on("requestfailed", request_failed)
 
                 def check_response(response):
                     if response.status >= 400:
@@ -168,7 +171,7 @@ def main():
 
             open_nav(page, "notes")
             expect(page.locator(".empty-notes")).to_be_visible()
-            run_story(page)
+            report["pilot_metadata"] = run_story(page)
             expect(page.locator("#status-message")).to_contain_text("저장했어")
             open_nav(page, "notes")
             page.reload(wait_until="networkidle")
@@ -178,7 +181,7 @@ def main():
             assert snapshot["initial"] == [5, 3, 2]
             assert snapshot["final"] == [3, 3, 4]
             screenshot(page, output, "project-saved-note.png")
-            report["passed"].append("all six episode steps, note save and reload restoration below the project prefix")
+            report["passed"].append("90-second pilot playback and seeking; all six episode steps, note save and reload restoration below the project prefix")
 
             open_nav(page, "library")
             expect(page.locator(".library-card")).to_have_count(3)
@@ -212,7 +215,7 @@ def main():
                                      is_mobile=True, has_touch=True, device_scale_factor=1)
             mobile = mobile_context.new_page()
             mobile.goto(base_url + "#episode", wait_until="networkidle")
-            expect(mobile.locator(".story-label")).to_have_text("이야기 미리보기")
+            report["mobile_pilot_metadata"] = check_pilot_video(mobile, playback=False)
             assert_no_overflow(mobile, "project-episode-story", report["mobile_widths"])
             screenshot(mobile, output, "project-mobile-story.png")
             report["passed"].append("390px mobile episode layout has no horizontal overflow")
@@ -226,7 +229,7 @@ def main():
             json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(report, ensure_ascii=False, indent=2))
     finally:
-        if browser:
+        if browser and browser.is_connected():
             browser.close()
         stop_project_server(server)
 
